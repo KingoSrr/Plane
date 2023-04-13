@@ -10,17 +10,20 @@ public class GreenPlayerController : MonoBehaviour
     private float _speed = 5f; // Скорость передвижения
     private Rigidbody2D _rb; // Ссылка на компонент Rigidbody2D
 
-    public GameObject[] rocketSpawnPoint;
+    public GameObject[] rocketSpawnPoint; // Места спавна ракет
     public GameObject rocketPrefab; // Префаб ракеты
 
     private float _fireRate = 0.5f; // Частота стрельбы в выстрелах в секунду
     private float _timeSinceLastShot; // Время с момента последнего выстрела
 
     private GameObject _scripts;
+    private float minX, maxX, minY, maxY; // Границы экрана
+
     void Start()
     {
         _rb = GetComponent<Rigidbody2D>();
         _scripts = GameObject.FindGameObjectWithTag("Scripts");
+        CheckBorder();
     }
     void Update()
     {
@@ -37,8 +40,20 @@ public class GreenPlayerController : MonoBehaviour
         if(health <= 0)
         {
             Destroy(gameObject);
-            _scripts.GetComponent<UIController>().GameOver("Зеленый игрок");
+            _scripts.GetComponent<UIController>().GameOver("Синий игрок");
         }
+    }
+    public void CheckBorder()
+    {
+        Camera mainCamera = Camera.main;
+        float screenRatio = (float)Screen.width / (float)Screen.height;
+        float cameraHeight = mainCamera.orthographicSize * 2;
+        float cameraWidth = cameraHeight * screenRatio;
+
+        minX = mainCamera.transform.position.x - cameraWidth / 2;
+        maxX = mainCamera.transform.position.x + cameraWidth / 2;
+        minY = mainCamera.transform.position.y - cameraHeight / 2;
+        maxY = mainCamera.transform.position.y + cameraHeight / 2;
     }
     public void Shoot()
     {
@@ -53,8 +68,13 @@ public class GreenPlayerController : MonoBehaviour
     {
         float horizontal = Input.GetAxis("ArrowHorizontal");
         float vertical = Input.GetAxis("ArrowVertical");
-        Vector2 moveDirection = new Vector2(horizontal, vertical) * _speed;
-        _rb.velocity = moveDirection;
+
+        Vector3 moveDirection = transform.position +  new Vector3(horizontal, vertical, 0f);
+
+        moveDirection.x = Mathf.Clamp(moveDirection.x, minX + GetComponent<PolygonCollider2D>().bounds.size.x, maxX - GetComponent<PolygonCollider2D>().bounds.size.x);
+        moveDirection.y = Mathf.Clamp(moveDirection.y, minY + GetComponent<PolygonCollider2D>().bounds.size.y, maxY - GetComponent<PolygonCollider2D>().bounds.size.y);
+
+        transform.position = Vector3.Lerp(transform.position, moveDirection, _speed * Time.deltaTime);
     }
     public void GiveDamage()
     {
